@@ -1,0 +1,121 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: 'bitnami/zookeeper:latest'
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    restart: unless-stopped
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+    networks:
+      - cronp-network
+
+  kafka1:
+    image: 'bitnami/kafka:latest'
+    container_name: kafka1
+    hostname: kafka1
+    ports:
+      - 19092
+      - 9092:9092
+    restart: unless-stopped
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:19092,EXTERNAL://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka1:19092,EXTERNAL://localhost:9092
+      - KAFKA_INTER_BROKER_LISTENER_NAME=CLIENT
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'kafka1.*9092' || exit 1"]
+      interval: 3s 
+      timeout: 3s
+      retries: 20
+    volumes:
+      - kafka1_data:/bitnami/kafka
+    networks:
+      - cronp-network
+    depends_on:
+      - zookeeper
+
+  # kafka2:
+  #   image: 'bitnami/kafka:latest'
+  #   container_name: kafka2
+  #   hostname: kafka2
+  #   ports:
+  #     - 19092  
+  #   restart: unless-stopped
+  #   environment:
+  #     - KAFKA_BROKER_ID=2
+  #     - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+  #     - ALLOW_PLAINTEXT_LISTENER=yes
+  #     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+  #     - KAFKA_CFG_LISTENERS=CLIENT://:19092,EXTERNAL://:9093
+  #     - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka2:19092,EXTERNAL://localhost:9093
+  #     - KAFKA_INTER_BROKER_LISTENER_NAME=CLIENT
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pgrep -f 'kafka2.*9093' || exit 1"]
+  #     interval: 3s 
+  #     timeout: 3s
+  #     retries: 20
+  #   volumes:
+  #     - kafka2_data:/bitnami/kafka
+  #   networks:
+  #     - cronp-network
+  #   depends_on:
+  #     - zookeeper
+
+  # kafka3:
+  #   image: 'bitnami/kafka:latest'
+  #   container_name: kafka3
+  #   hostname: kafka3
+  #   ports:
+  #     - 19092  
+  #   restart: unless-stopped
+  #   environment:
+  #     - KAFKA_BROKER_ID=3
+  #     - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+  #     - ALLOW_PLAINTEXT_LISTENER=yes
+  #     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+  #     - KAFKA_CFG_LISTENERS=CLIENT://:19092,EXTERNAL://:9094
+  #     - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka3:19092,EXTERNAL://localhost:9094
+  #     - KAFKA_INTER_BROKER_LISTENER_NAME=CLIENT
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pgrep -f 'kafka3.*9094' || exit 1"]
+  #     interval: 3s 
+  #     timeout: 3s
+  #     retries: 20
+  #   volumes:
+  #     - kafka3_data:/bitnami/kafka
+  #   networks:
+  #     - cronp-network
+  #   depends_on:
+  #     - zookeeper
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8082:8080
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:19092
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - cronp-network
+
+volumes:
+  zookeeper_data:
+    driver: local
+  kafka1_data:
+    driver: local
+  kafka2_data:
+    driver: local
+  kafka3_data:
+    driver: local
+
+networks:
+  cronp-network:
