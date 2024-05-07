@@ -71,7 +71,8 @@ func (hwj *HelloWorldJob) Run() ([]*sarama.ProducerMessage, error) {
 func main() {
 	job := &HelloWorldJob{}
 
-    // Before running the cron producer, make sure you create the topic in Kafka. An example for creating a topic is given in the `examples` folder.
+    // Before running the cron producer, make sure you create the topic in Kafka.
+    // An example for creating a topic is given in the `examples` folder.
 	createTopic()
 
 	// Create cron producer config
