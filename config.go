@@ -12,20 +12,17 @@ type Config struct {
 	Job Job
 	// BrokerURLs is the list of Kafka broker URLs.
 	BrokerURLs []string
-	// TopicName is the name of the Kafka topic.
-	TopicName string
 	// ProducerConfig is the configuration for the Kafka producer.
 	ProducerConfig *sarama.Config
 }
 
 // NewConfig creates a new Config instance.
-func NewConfig(name, schedule string, job Job, brokerURls []string, topic string, producerConfig ...*sarama.Config) *Config {
+func NewConfig(name, schedule string, job Job, brokerURls []string, producerConfig ...*sarama.Config) *Config {
 	cfg := &Config{
 		Name:       name,
 		Schedule:   schedule,
 		Job:        job,
 		BrokerURLs: brokerURls,
-		TopicName:  topic,
 	}
 
 	producerCfg := sarama.NewConfig()

@@ -7,14 +7,18 @@ import (
 
 // CronProducer contains the configuration and associated cron meth
 type CronProducer struct {
+	// config holds the configuration for the cron job.
 	config   *Config
+	// cron is the cron scheduler.
 	cron     *cron.Cron
+	// producer is the Kafka producer which publishes messages.
 	producer sarama.AsyncProducer
+	// errChan is the error channel which receives errors from the job, that can be used to log errors or send alerts.
 	errChan  chan error
 }
 
 // NewCronProducer creates a new CronProducer instance.
-func NewCronProducer(cfg *Config) (*CronProducer, error) {
+func New(cfg *Config) (*CronProducer, error) {
 	producer, err := sarama.NewAsyncProducer(cfg.BrokerURLs, cfg.ProducerConfig)
 	if err != nil {
 		return nil, err
@@ -33,6 +37,8 @@ func (cp *CronProducer) StartCron() error {
 	_, err := cp.cron.AddFunc(cp.config.Schedule, func() {
 		messages, err := cp.config.Job.Run()
 		if err != nil {
+			// Send error to error channel
+			// This can be used to log errors or send alerts
 			cp.errChan <- err
 			return
 		}
