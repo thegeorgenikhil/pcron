@@ -1,39 +1,39 @@
 package cronp
 
-const (
-	// __defaultTopicPartitions is the default number of partitions for a topic
-	__defaultTopicPartitions = 1
+import "github.com/IBM/sarama"
 
-	// __defaultTopicReplicationFactor is the default replication factor for a topic
-	__defaultTopicReplicationFactor = 1
-)
-
-type config struct {
-	name string
-	schedule string
-	job Job
-	brokerURLs []string
-	topicName string
-	topicPartitions int
-	topicReplicationFactor int
+// Config holds the configuration for a cron job.
+type Config struct {
+	// Name is the name of the cron job.
+	Name string
+	// Schedule is the cron schedule for the job.
+	Schedule string
+	// Job is the job to be executed. It has a Run method where the actual job logic is implemented and returns a list of messages to be published.
+	Job Job
+	// BrokerURLs is the list of Kafka broker URLs.
+	BrokerURLs []string
+	// TopicName is the name of the Kafka topic.
+	TopicName string
+	// ProducerConfig is the configuration for the Kafka producer.
+	ProducerConfig *sarama.Config
 }
 
-func NewConfig(name string, schedule string, job Job, brokerURL []string, topic string) *config {
-	return &config{
-		name: name,
-		schedule: schedule,
-		job: job,
-		brokerURLs: brokerURL,
-		topicName: topic,
-		topicPartitions: __defaultTopicPartitions,
-		topicReplicationFactor: __defaultTopicReplicationFactor,
+// NewConfig creates a new Config instance.
+func NewConfig(name, schedule string, job Job, brokerURls []string, topic string, producerConfig ...*sarama.Config) *Config {
+	cfg := &Config{
+		Name:       name,
+		Schedule:   schedule,
+		Job:        job,
+		BrokerURLs: brokerURls,
+		TopicName:  topic,
 	}
-}
 
-func (c *config) SetTopicPartitions(partitions int) {
-	c.topicPartitions = partitions
-}
+	producerCfg := sarama.NewConfig()
+	if len(producerConfig) > 0 {
+		producerCfg = producerConfig[0]
+	}
 
-func (c *config) SetTopicReplicationFactor(replicationFactor int) {
-	c.topicReplicationFactor = replicationFactor
+	cfg.ProducerConfig = producerCfg
+
+	return cfg
 }

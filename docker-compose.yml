@@ -9,8 +9,8 @@ services:
     restart: unless-stopped
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
-    volumes:
-      - zookeeper_data:/bitnami/zookeeper
+    # volumes:
+    #   - zookeeper_data:/bitnami/zookeeper
     networks:
       - cronp-network
 
@@ -35,8 +35,8 @@ services:
       interval: 3s 
       timeout: 3s
       retries: 20
-    volumes:
-      - kafka1_data:/bitnami/kafka
+    # volumes:
+    #   - kafka1_data:/bitnami/kafka
     networks:
       - cronp-network
     depends_on:

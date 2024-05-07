@@ -1,43 +1,51 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"log"
+	"time"
 
-	"github.com/segmentio/kafka-go"
+	"github.com/IBM/sarama"
 	cronp "github.com/thgeorgenikhil/cronp/cronp"
 )
 
 type wsjJob struct {
 }
 
-func (w *wsjJob) Run() ([]kafka.Message, error) {
-	return []kafka.Message{
+func (w *wsjJob) Run() ([]*sarama.ProducerMessage, error) {
+	messages := []*sarama.ProducerMessage{
 		{
-			Key:   []byte("wsj"),
-			Value: []byte("wsj"),
+			Topic: "wsj",
+			Key:   sarama.StringEncoder("key"),
+			Value: sarama.StringEncoder("Hello World!"),
 		},
-	}, nil
+	}
+
+	// Randomly generate error if minute is even
+	if time.Now().Minute()%2 == 0 {
+		return nil, fmt.Errorf("error")
+	}
+	return messages, nil
 }
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// The following code snippet demonstrates how to use the cronp package to create a cron job that runs every 10 seconds.
-	cfg := cronp.NewConfig("wsj-cron", "*/10 * * * * *", &wsjJob{}, []string{"localhost:9092"}, "wsj")
-	cfg.SetTopicPartitions(10)
-	cfg.SetTopicPartitions(3)
-
-	cronProducer, err := cronp.NewCronProducer(ctx, cfg)
+	job := &wsjJob{}
+	config := cronp.NewConfig("wsj", "* * * * *", job, []string{"localhost:9092"}, "wsj")
+	cronProducer, err := cronp.NewCronProducer(config)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error creating cron producer: %v", err)
 	}
 
 	err = cronProducer.StartCron()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error starting cron producer: %v", err)
 	}
-	defer cronProducer.StopCron()
-	for {}
+
+	go func() {
+		for err := range cronProducer.GetErrorChan() {
+			log.Printf("error: %v", err)
+		}
+	}()
+
+	select {}
 }

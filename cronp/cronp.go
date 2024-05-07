@@ -1,60 +1,44 @@
 package cronp
 
 import (
-	"context"
-	"net"
-	"strconv"
-
+	"github.com/IBM/sarama"
 	"github.com/robfig/cron/v3"
-	kafka "github.com/segmentio/kafka-go"
 )
 
-type Job interface {
-	Run() ([]kafka.Message, error)
+// CronProducer contains the configuration and associated cron meth
+type CronProducer struct {
+	config   *Config
+	cron     *cron.Cron
+	producer sarama.AsyncProducer
+	errChan  chan error
 }
 
-type cronProducer struct {
-	config *config
-	cron  *cron.Cron
-	writer *kafka.Writer
-	errCh  chan error
-}
-
-func NewCronProducer(ctx context.Context, cfg *config) (*cronProducer, error) {
-	err := createTopics(
-		context.Background(),
-		cfg.brokerURLs[0],
-		cfg.topicName,
-		cfg.topicPartitions,
-		cfg.topicReplicationFactor,
-	)
+// NewCronProducer creates a new CronProducer instance.
+func NewCronProducer(cfg *Config) (*CronProducer, error) {
+	producer, err := sarama.NewAsyncProducer(cfg.BrokerURLs, cfg.ProducerConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  cfg.brokerURLs,
-		Topic:    cfg.topicName,
-		RequiredAcks: 1,
-	})
-
-	return &cronProducer{
-		config: cfg,
-		writer: writer,
+	return &CronProducer{
+		config:   cfg,
+		producer: producer,
+		errChan:  make(chan error),
 	}, nil
 }
 
-func (cp *cronProducer) StartCron() error {
-	cp.cron = cron.New(cron.WithSeconds())
-	_, err := cp.cron.AddFunc(cp.config.schedule, func() {
-		messages, err := cp.config.job.Run()
+// StartCron starts the cron scheduler and runs the job at the specified schedule.
+func (cp *CronProducer) StartCron() error {
+	cp.cron = cron.New()
+	_, err := cp.cron.AddFunc(cp.config.Schedule, func() {
+		messages, err := cp.config.Job.Run()
 		if err != nil {
-			cp.errCh <- err
+			cp.errChan <- err
+			return
 		}
 
-		err = cp.writer.WriteMessages(context.Background(), messages...)
-		if err != nil {
-			cp.errCh <- err
+		for _, message := range messages {
+			cp.producer.Input() <- message
 		}
 	})
 	if err != nil {
@@ -65,38 +49,15 @@ func (cp *cronProducer) StartCron() error {
 	return nil
 }
 
-func (cp *cronProducer) StopCron() {
-	cp.writer.Close()
-	cp.cron.Stop()
+// GetErrorChan returns the error channel.
+func (cp *CronProducer) GetErrorChan() <-chan error {
+	return cp.errChan
 }
 
-func (cp *cronProducer) GetErrors() <-chan error {
-	return cp.errCh
-}
-
-func createTopics(ctx context.Context, brokerUrl string, topicName string, partitions, replicationFactor int) error {
-	conn, err := kafka.DialContext(ctx, "tcp", brokerUrl)
-	if err != nil {
-		return err
+// StopCron stops the cron scheduler.
+func (cp *CronProducer) StopCron() {
+	cp.producer.Close()
+	if cp.cron != nil {
+		cp.cron.Stop()
 	}
-	defer conn.Close()
-
-	controller, _ := conn.Controller()
-
-	controllerConn, err := kafka.Dial("tcp", net.JoinHostPort(controller.Host, strconv.Itoa(controller.Port)))
-	if err != nil {
-		return err
-	}
-	defer controllerConn.Close()
-
-	err = controllerConn.CreateTopics(kafka.TopicConfig{
-		Topic:             topicName,
-		NumPartitions:     partitions,
-		ReplicationFactor: replicationFactor,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
