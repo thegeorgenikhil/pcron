@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/thgeorgenikhil/cronp"
+	"github.com/thegeorgenikhil/cronp"
 )
 
 const (
@@ -30,7 +30,7 @@ func (hwj *HelloWorldJob) Run() ([]*sarama.ProducerMessage, error) {
 		},
 	}
 
-	// Randomly generate error if minute is divisible by 3
+	// Randomly generate error if minute is divisible by 4
 	// This is to show error handling in action
 	if time.Now().Minute()%4 == 0 {
 		return nil, fmt.Errorf("ouch! error occurred")
