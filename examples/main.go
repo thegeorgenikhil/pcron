@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/thegeorgenikhil/cronp"
+	"github.com/thegeorgenikhil/pcron"
 )
 
 const (
@@ -43,25 +43,25 @@ func main() {
 
 	createTopic()
 
-	// Create cron producer config
-	config := cronp.NewConfig(Name, Schedule, job, BrokerURLs)
+	// Create producer cron config
+	config := pcron.NewConfig(Name, Schedule, job, BrokerURLs)
 
-	// Create cron producer
-	cronProducer, err := cronp.New(config)
+	// Create producer cron
+	producerCron, err := pcron.New(config)
 	if err != nil {
-		log.Fatalf("Error creating cron producer: %v", err)
+		log.Fatalf("Error creating producer cron: %v", err)
 	}
 
 	// Start the cron
-	err = cronProducer.StartCron()
+	err = producerCron.StartCron()
 	if err != nil {
-		log.Fatalf("Error starting cron producer: %v", err)
+		log.Fatalf("Error starting producer cron: %v", err)
 	}
-	defer cronProducer.StopCron()
+	defer producerCron.StopCron()
 
 	// Handle errors from the job in a separate goroutine
 	go func() {
-		for err := range cronProducer.GetErrorChan() {
+		for err := range producerCron.GetErrorChan() {
 			log.Printf("[ERROR]: %v", err)
 		}
 	}()

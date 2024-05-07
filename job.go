@@ -1,4 +1,4 @@
-package cronp
+package pcron
 
 import "github.com/IBM/sarama"
 

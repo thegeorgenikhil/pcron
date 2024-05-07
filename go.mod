@@ -1,4 +1,4 @@
-module github.com/thegeorgenikhil/cronp
+module github.com/thegeorgenikhil/pcron
 
 go 1.22.2
 

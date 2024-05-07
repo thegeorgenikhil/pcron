@@ -10,7 +10,7 @@ services:
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
     networks:
-      - cronp-network
+      - pcron-network
 
   kafka:
     image: 'bitnami/kafka:latest'
@@ -34,9 +34,9 @@ services:
       timeout: 3s
       retries: 20
     networks:
-      - cronp-network
+      - pcron-network
     depends_on:
       - zookeeper
 
 networks:
-  cronp-network:
+  pcron-network:

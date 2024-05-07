@@ -1,12 +1,12 @@
-package cronp
+package pcron
 
 import (
 	"github.com/IBM/sarama"
 	"github.com/robfig/cron/v3"
 )
 
-// CronProducer contains the configuration and associated cron meth
-type CronProducer struct {
+// ProducerCron contains the configuration and associated cron meth
+type ProducerCron struct {
 	// config holds the configuration for the cron job.
 	config   *Config
 	// cron is the cron scheduler.
@@ -17,14 +17,14 @@ type CronProducer struct {
 	errChan  chan error
 }
 
-// NewCronProducer creates a new CronProducer instance.
-func New(cfg *Config) (*CronProducer, error) {
+// NewProducerCron creates a new ProducerCron instance.
+func New(cfg *Config) (*ProducerCron, error) {
 	producer, err := sarama.NewAsyncProducer(cfg.BrokerURLs, cfg.ProducerConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	return &CronProducer{
+	return &ProducerCron{
 		config:   cfg,
 		producer: producer,
 		errChan:  make(chan error),
@@ -32,7 +32,7 @@ func New(cfg *Config) (*CronProducer, error) {
 }
 
 // StartCron starts the cron scheduler and runs the job at the specified schedule.
-func (cp *CronProducer) StartCron() error {
+func (cp *ProducerCron) StartCron() error {
 	cp.cron = cron.New()
 	_, err := cp.cron.AddFunc(cp.config.Schedule, func() {
 		messages, err := cp.config.Job.Run()
@@ -56,12 +56,12 @@ func (cp *CronProducer) StartCron() error {
 }
 
 // GetErrorChan returns the error channel.
-func (cp *CronProducer) GetErrorChan() <-chan error {
+func (cp *ProducerCron) GetErrorChan() <-chan error {
 	return cp.errChan
 }
 
 // StopCron stops the cron scheduler.
-func (cp *CronProducer) StopCron() {
+func (cp *ProducerCron) StopCron() {
 	cp.producer.Close()
 	if cp.cron != nil {
 		cp.cron.Stop()
